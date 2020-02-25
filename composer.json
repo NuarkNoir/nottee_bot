@@ -1,0 +1,6 @@
+{
+    "require": {
+        "radyakaze/phptelebot": "^1.3",
+        "simple-crud/simple-crud": "^7.4"
+    }
+}
