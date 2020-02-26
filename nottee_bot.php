@@ -27,6 +27,37 @@ $bot->cmd(
     "Also you can list them all with `/list`"
 );
 
+$bot->cmd("/list", function() use ($db) {
+    $message = Bot::message();
+    
+    $chatid = $message["chat"]["id"];
+    $ownerid = $message["from"]["id"];
+    $notes = $db->note->select()->where("chatid = ", $chatid)->get();
+    $nc = $db->note
+        ->selectAggregate("COUNT")
+        ->where("chatid = ", $chatid)
+        ->get();
+    if ($nc > 0) {
+        $em = $nc > 1? "s" : "";
+        $result = "$nc note$em found\n";
+
+        foreach ($notes as $note) {
+            $result .= "\n`" . explode("_", $note->noteid, 3)[2] . "`";
+            if ($message["chat"]["type"] != "private") {
+                $user = json_decode(
+                    Bot::send("getChatMember", ["chat_id" => $chatid, "user_id" => $ownerid])
+                )->result->user;
+                $result .= " by [{$user->first_name}](tg://user?id={$user->id})";
+            }
+        }
+    }
+    else {
+        $result = "No notes found";
+    }
+
+    return Bot::sendMessage($result, ["parse_mode" => "markdown"]);
+});
+
 $bot->on("text", function() use ($db) {
     $message = Bot::message();
     if (substr($message["text"], 0, 6) === "/note ") {
