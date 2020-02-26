@@ -118,8 +118,7 @@ $bot->cmd("/ref",  function($refid) use ($db) {
 
     if (isset($note)) {
         if (isset($note->ref_id)) {
-            $ref = $note->ref;
-            $result = $ref->data;
+            $result = $note->ref->data;
         }
         else {
             $result = "Somehow, you got empty ref. Please, contact @nuark about this incident.";
@@ -130,6 +129,36 @@ $bot->cmd("/ref",  function($refid) use ($db) {
     }
 
     return Bot::sendMessage($result);
+});
+
+$bot->on("inline", function ($stext) use ($db) {
+    $message = Bot::message();
+    
+    $ownerid = $message["from"]["id"];
+    $notes = $db->note->select()->where("ownerid = ", $ownerid)->get();
+
+    $results = [];
+    foreach ($notes as $note) {
+        if ($note->ref->type !== "text" || stripos($note->ref->data, $stext) === false) {
+            continue;
+        }
+
+        $results[] = [
+            "type" => "article",
+            "id" => uniqid("", true),
+            "title" => "Your note: ".explode("_", $note->noteid, 3)[2],
+            "message_text" => "{$note->ref->data}",
+        ];
+
+        if (count($results) >= 50) {
+            break;
+        }
+    }
+    $options = [
+        "cache_time" => 60,
+    ];
+
+    return Bot::answerInlineQuery($results, $options);
 });
 
 $bot->run();
